@@ -21,6 +21,7 @@ file/
 
 # building
 target/
+classes/
 bin/
 test-output/
 out/
@@ -38,7 +39,6 @@ IntelliJBehave.zip
 #  ^\.pc/
 
 # IntelliJ
-*.iml
 *.ipr
 *.iws
 .idea
