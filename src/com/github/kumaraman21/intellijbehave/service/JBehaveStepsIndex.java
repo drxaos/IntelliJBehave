@@ -11,9 +11,13 @@ import com.intellij.openapi.util.Computable;
 import com.intellij.psi.PsiAnnotation;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiElement;
+import com.intellij.psi.PsiMethod;
 import com.intellij.psi.impl.java.stubs.index.JavaAnnotationIndex;
 import com.intellij.psi.impl.java.stubs.index.JavaFullClassNameIndex;
+import com.intellij.psi.impl.search.JavaSourceFilterScope;
 import com.intellij.psi.search.GlobalSearchScope;
+import com.intellij.psi.stubs.StubIndex;
+import com.intellij.psi.stubs.StubIndexKey;
 import org.jbehave.core.annotations.Given;
 import org.jbehave.core.annotations.Then;
 import org.jbehave.core.annotations.When;
@@ -93,9 +97,14 @@ public class JBehaveStepsIndex {
         List<PsiClass> stepAnnotations = asList(givenAnnotationClass, whenAnnotationClass, thenAnnotationClass);
         for (PsiClass stepAnnotation : stepAnnotations) {
             Collection<PsiAnnotation> allStepAnnotations = getAllStepAnnotations(stepAnnotation, dependenciesScope);
+            Collection<PsiMethod> allGrStepAnnotations = getAllGrStepAnnotations(stepAnnotation, dependenciesScope);
 
             for (PsiAnnotation stepDefAnnotation : allStepAnnotations) {
                 result.add(new JavaStepDefinition(stepDefAnnotation));
+            }
+
+            for (PsiMethod stepDefGrMethod : allGrStepAnnotations) {
+                result.add(new JavaStepDefinition(stepDefGrMethod.getModifierList().findAnnotation(stepAnnotation.getQualifiedName())));
             }
         }
 
@@ -108,6 +117,17 @@ public class JBehaveStepsIndex {
             @Override
             public Collection<PsiAnnotation> compute() {
                 return JavaAnnotationIndex.getInstance().get(annClass.getName(), annClass.getProject(), scope);
+            }
+        });
+    }
+
+    @NotNull
+    private static Collection<PsiMethod> getAllGrStepAnnotations(@NotNull final PsiClass annClass, @NotNull final GlobalSearchScope scope) {
+        return ApplicationManager.getApplication().runReadAction(new Computable<Collection<PsiMethod>>() {
+            @Override
+            public Collection<PsiMethod> compute() {
+                StubIndexKey<String, PsiMethod> key = (StubIndexKey) StubIndexKey.findByName("gr.annot.members");
+                return StubIndex.getElements(key, annClass.getName(), annClass.getProject(), new JavaSourceFilterScope(scope), PsiMethod.class);
             }
         });
     }
